@@ -1163,11 +1163,11 @@ function renderReport(visionJson, r, imageDataUrl, strategyJson, hitSet) {
   }
 }
 
-// --- 像素级 K 线颜色检测（从右往左扫描，区分K线实体与趋势带背景）---
+// --- 像素级 K 线颜色检测（极限亮度阈值法，彻底免疫半透明趋势带与均线切割）---
 function analyzeKlineColors(canvas, w, h) {
   const ctx = canvas.getContext('2d');
 
-  // 扫描区域：x=10%~58%（严格避开右侧盘口价格数字），y=15%~85%
+  // 扫描区域：x=10%~58%（严格避开右侧盘口数据），y=15%~85%
   const xStart = Math.floor(w * 0.10);
   const xEnd = Math.floor(w * 0.58);
   const yStart = Math.floor(h * 0.15);
@@ -1178,81 +1178,92 @@ function analyzeKlineColors(canvas, w, h) {
   const imageData = ctx.getImageData(xStart, yStart, scanW, scanH);
   const pixels = imageData.data;
 
-  // 逐列分析：用"连续同色高饱和度像素段"识别K线实体
-  // K线实体特征：颜色鲜艳(高饱和)、连续竖直段较长
-  // 趋势带背景特征：颜色偏暗/半透明、覆盖面积大但单列密度低
-  const colResults = []; // 每列的检测结果
+  const colResults = [];
 
   for (let x = 0; x < scanW; x++) {
-    let maxRedRun = 0, maxBlueRun = 0;
-    let curRedRun = 0, curBlueRun = 0;
+    let pureRedPixels = 0;
+    let pureBluePixels = 0;
 
     for (let y = 0; y < scanH; y++) {
       const idx = (y * scanW + x) * 4;
       const r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
-      const brightness = (r + g + b) / 3;
-      if (brightness < 40 || brightness > 240) {
-        curRedRun = 0; curBlueRun = 0; continue;
+
+      // 极限阈值：K线实体是不透明纯色，RGB值会逼近 255
+      // 趋势带背景是半透明叠加黑底，RGB值最高也就 150-180
+      // 设定 R > 220 彻底过滤掉所有红色趋势带背景！
+      if (r > 220 && g < 90 && b < 90) {
+        pureRedPixels++;
       }
-
-      // K线实体判定（比趋势带更严格的阈值）
-      // 红K线实体：R很高(>160)，R远大于B(差>70)，R大于G(差>30)
-      const isRed = r > 160 && (r - b) > 70 && (r - g) > 30;
-      // 蓝K线实体：B较高(>80)，B远大于R(差>50)，B大于G
-      const isBlue = b > 80 && (b - r) > 50 && b > g;
-
-      if (isRed) { curRedRun++; maxRedRun = Math.max(maxRedRun, curRedRun); curBlueRun = 0; }
-      else if (isBlue) { curBlueRun++; maxBlueRun = Math.max(maxBlueRun, curBlueRun); curRedRun = 0; }
-      else { curRedRun = 0; curBlueRun = 0; }
+      // 期货阴线通常是纯蓝或纯绿、青色
+      else if ((b > 200 || g > 200) && r < 90) {
+        pureBluePixels++;
+      }
     }
 
-    // K线实体要求连续段≥5px
-    const minRun = Math.max(5, scanH * 0.02);
-    if (maxRedRun >= minRun && maxRedRun > maxBlueRun * 1.5) colResults.push('红');
-    else if (maxBlueRun >= minRun && maxBlueRun > maxRedRun * 1.5) colResults.push('蓝');
-    else colResults.push(null);
+    // 只要有少数几个极限亮度的像素，就说明这列压中了K线实体或极亮的文字
+    if (pureRedPixels >= 2 && pureRedPixels > pureBluePixels) {
+      colResults.push('红');
+    } else if (pureBluePixels >= 2 && pureBluePixels > pureRedPixels) {
+      colResults.push('蓝');
+    } else {
+      colResults.push(null);
+    }
   }
 
-  // 从右往左合并相邻同色列为K线（最多找8根就停）
+  // 从右往左合并相邻同色列为K线实体
   const candles = [];
   let ci = colResults.length - 1;
   while (ci >= 0 && candles.length < 8) {
     if (colResults[ci] === null) { ci--; continue; }
     const color = colResults[ci];
     let width = 0;
-    while (ci >= 0 && (colResults[ci] === color || (colResults[ci] === null && width > 0))) {
-      if (colResults[ci] === color) width++;
-      ci--;
-      // 允许最多3px间隙
-      let gap = 0;
-      while (ci >= 0 && colResults[ci] === null && gap < 3) { ci--; gap++; }
-      if (ci >= 0 && colResults[ci] !== color) break;
+
+    while (ci >= 0) {
+      if (colResults[ci] === color) {
+        width++; ci--;
+      } else if (colResults[ci] === null) {
+        // 允许缝隙（避开可能被压缩糊掉的局部）
+        let gap = 0;
+        let tempCi = ci;
+        while (tempCi >= 0 && colResults[tempCi] === null && gap < 3) { tempCi--; gap++; }
+        if (tempCi >= 0 && colResults[tempCi] === color) {
+          ci = tempCi; // 跨过缝隙继续
+        } else {
+          break;
+        }
+      } else {
+        break; // 撞到异色K线
+      }
     }
-    if (width >= 2) candles.push(color); // candles[0]=最右（最新）
+
+    // K线实体必然有一定宽度。极窄的（比如宽1px）是图表上的小字或噪点
+    if (width >= 2) {
+      candles.push(color);
+    }
   }
 
   const recent3 = candles.slice(0, 3);
   const recent5 = candles.slice(0, 5);
 
-  // 右半区域红蓝比
+  // 整体红蓝比例检测（放宽阈值，用于判定宏观的背景色趋势带属性）
   let tR = 0, tB = 0, tAll = 0;
-  const rightStart = Math.floor(scanW * 0.5);
-  for (let x = rightStart; x < scanW; x++) {
+  for (let x = 0; x < scanW; x++) {
     for (let y = 0; y < scanH; y++) {
       const idx = (y * scanW + x) * 4;
       const r = pixels[idx], g = pixels[idx+1], b = pixels[idx+2];
       const br = (r+g+b)/3;
-      if (br < 40 || br > 240) continue;
-      tAll++;
-      if (r > 160 && (r-b) > 70 && (r-g) > 30) tR++;
-      else if (b > 80 && (b-r) > 50 && b > g) tB++;
+      if (br > 30 && br < 240) {
+        tAll++;
+        if (r > 130 && (r-b) > 40 && (r-g) > 20) tR++;
+        else if ((b > 100 || g > 100) && r < 90) tB++;
+      }
     }
   }
   const redPct = tAll > 0 ? Math.round(tR/tAll*100) : 0;
   const bluePct = tAll > 0 ? Math.round(tB/tAll*100) : 0;
 
   const summary = recent3.length > 0
-    ? `近${recent3.length}根K线颜色：${recent3.join('-')}（像素级RGB检测，从右往左） | 近5根：${recent5.join('-')} | 右侧区域红${redPct}% 蓝${bluePct}%`
+    ? `近${recent3.length}根K线颜色：${recent3.join('-')}（像素检测法，从右往左） | 近5根：${recent5.join('-')} | 区域红${redPct}% 蓝${bluePct}%`
     : '像素检测未识别到有效K线，请使用视觉纠正框手动输入';
 
   return {
@@ -1264,7 +1275,6 @@ function analyzeKlineColors(canvas, w, h) {
     summary
   };
 }
-
 function resetApp() {
   document.getElementById('reportPanel').style.display = 'none';
   document.getElementById('progressPanel').style.display = 'none';
