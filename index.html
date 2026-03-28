@@ -771,13 +771,22 @@ async function startAnalysis() {
 
     // 【Step 4: 研报合成】
     renderSteps('report', done);
+    const today = new Date().toLocaleDateString('zh-CN', {year:'numeric', month:'long', day:'numeric'});
     const reportPrompt = `你是管理千亿资金的顶尖量化宏观对冲基金首席策略师。你的分析报告将直接决定交易决策，任何敷衍、套话、空洞的表述都是不可接受的。
 
 ⚠️ 格式要求：直接输出裸 JSON 对象，第一个字符必须是 {，最后一个字符必须是 }，不要任何 markdown 符号。
 
 【技术面诊断】${JSON.stringify(visionJson)}
 【宏观背景补充】${macroText || "无"}
-【Tavily全球检索结果(2026)】${searchResultsText.slice(0, 8000)}
+⚠️ 当前日期：${today}。所有分析必须基于此日期之前已发生的事实，绝对禁止编造未来日期的事件。
+
+【Tavily全球检索结果】${searchResultsText.slice(0, 8000)}
+
+${macroText ? `⚠️ 极重要：用户输入了宏观大事件「${macroText}」。这是本次分析的核心锚点！你必须：
+1. 将此事件作为drivers的第一条（rank=1, importance=primary），从多角度深入分析它对该品种的影响
+2. 其他drivers也要围绕这个大事件展开——它引发的连锁反应、它改变的市场预期、它触发的资金流向
+3. scenarios的三个情景以这个大事件的不同演化路径为核心（如：冲突升级/维持/缓和）
+4. 不要把这个大事件当成众多因素之一轻描淡写，它是统领全局的主线` : ''}
 
 你必须像写给基金投委会的决策备忘录一样输出以下 JSON：
 {
