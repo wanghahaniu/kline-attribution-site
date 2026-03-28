@@ -1167,75 +1167,120 @@ function renderReport(visionJson, r, imageDataUrl, strategyJson, hitSet) {
 function analyzeKlineColors(canvas, w, h) {
   const ctx = canvas.getContext('2d');
 
-  // 扫描区域：右侧 15-65% 宽度（避开最右侧盘口数据），垂直中间 50%
+  // 扫描区域：左15%~右65%（避开盘口数据），垂直中间60%
   const xStart = Math.floor(w * 0.15);
   const xEnd = Math.floor(w * 0.65);
-  const yStart = Math.floor(h * 0.2);
-  const yEnd = Math.floor(h * 0.8);
+  const yStart = Math.floor(h * 0.15);
+  const yEnd = Math.floor(h * 0.85);
   const scanW = xEnd - xStart;
   const scanH = yEnd - yStart;
 
   const imageData = ctx.getImageData(xStart, yStart, scanW, scanH);
-  const pixels = imageData.data; // RGBA flat array
+  const pixels = imageData.data;
 
-  // 逐列扫描，统计每列的红/蓝像素
-  const columns = []; // { red: n, blue: n, total: n }
+  // 逐列扫描：用"连续同色密集段"来识别K线实体，而非简单计数
+  // K线实体 = 一列中连续的高亮度高饱和度同色像素
+  const candleColumns = [];
+
   for (let x = 0; x < scanW; x++) {
-    let red = 0, blue = 0, total = 0;
+    let maxRedRun = 0, maxBlueRun = 0;
+    let curRedRun = 0, curBlueRun = 0;
+
     for (let y = 0; y < scanH; y++) {
       const idx = (y * scanW + x) * 4;
       const r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
-      // 跳过接近黑色（背景）和接近白色（网格线）的像素
+
+      // 跳过太暗(背景)和太亮(网格/文字)的像素
       const brightness = (r + g + b) / 3;
-      if (brightness < 30 || brightness > 230) continue;
-      total++;
-      if (r - b > 40 && r > g) red++;
-      else if (b - r > 40 && b > g) blue++;
+      if (brightness < 50 || brightness > 240) {
+        curRedRun = 0; curBlueRun = 0;
+        continue;
+      }
+
+      // 判断颜色：要求高饱和度 + 足够亮度
+      // 红色K线：R明显高，且R值较高（不是暗红背景）
+      const isRed = r > 140 && (r - b) > 60 && (r - g) > 40;
+      // 蓝色K线：B明显高，且B值较高
+      const isBlue = b > 100 && (b - r) > 50 && (b - g) > 20;
+
+      if (isRed) {
+        curRedRun++;
+        maxRedRun = Math.max(maxRedRun, curRedRun);
+        curBlueRun = 0;
+      } else if (isBlue) {
+        curBlueRun++;
+        maxBlueRun = Math.max(maxBlueRun, curBlueRun);
+        curRedRun = 0;
+      } else {
+        // 允许小间隙（1-2像素），K线实体内可能有细线
+        if (curRedRun > 0 && curRedRun < maxRedRun) curRedRun = 0;
+        if (curBlueRun > 0 && curBlueRun < maxBlueRun) curBlueRun = 0;
+      }
     }
-    columns.push({ red, blue, total });
+
+    // K线实体要求：连续同色段至少 5 像素高（避免噪点）
+    const minRun = Math.max(5, scanH * 0.02);
+    if (maxRedRun >= minRun && maxRedRun > maxBlueRun * 1.5) {
+      candleColumns.push('红');
+    } else if (maxBlueRun >= minRun && maxBlueRun > maxRedRun * 1.5) {
+      candleColumns.push('蓝');
+    } else {
+      candleColumns.push(null);
+    }
   }
 
-  // 识别 K 线实体：某列红/蓝像素占比 > 25%
-  const candleColumns = columns.map((col, x) => {
-    if (col.total < 5) return null;
-    const redRatio = col.red / col.total;
-    const blueRatio = col.blue / col.total;
-    if (redRatio > 0.25) return '红';
-    if (blueRatio > 0.25) return '蓝';
-    return null;
-  });
-
-  // 合并相邻同色列为一根 K 线，过滤噪点（宽度 < 2px）
+  // 合并相邻同色列为一根K线（间隙≤3px合并，宽度<3px忽略）
   const candles = [];
   let i = 0;
   while (i < candleColumns.length) {
     if (candleColumns[i] === null) { i++; continue; }
     const color = candleColumns[i];
     let width = 0;
-    while (i < candleColumns.length && candleColumns[i] === color) {
-      width++; i++;
+    let j = i;
+    while (j < candleColumns.length) {
+      if (candleColumns[j] === color) {
+        width++; j++;
+      } else if (candleColumns[j] === null) {
+        // 允许最多3像素间隙
+        let gap = 0;
+        let k = j;
+        while (k < candleColumns.length && candleColumns[k] === null && gap < 4) { gap++; k++; }
+        if (k < candleColumns.length && candleColumns[k] === color) {
+          j = k; // 跳过间隙继续
+        } else {
+          break;
+        }
+      } else {
+        break;
+      }
     }
-    if (width >= 2) {
+    if (width >= 3) {
       candles.push(color);
     }
-    // 跳过小间隙（最多3px）后若同色则合并
-    let gap = 0;
-    while (i < candleColumns.length && candleColumns[i] === null && gap < 3) {
-      gap++; i++;
-    }
+    i = j;
   }
 
-  // 取最右侧 5 根
+  // 取最右侧 5 根和 3 根
   const recent5 = candles.slice(-5);
   const recent3 = candles.slice(-3);
 
-  // 统计扫描区整体红蓝比例
-  let totalRed = 0, totalBlue = 0, totalAll = 0;
-  columns.forEach(c => { totalRed += c.red; totalBlue += c.blue; totalAll += c.total; });
-  const redPct = totalAll > 0 ? Math.round(totalRed / totalAll * 100) : 0;
-  const bluePct = totalAll > 0 ? Math.round(totalBlue / totalAll * 100) : 0;
+  // 统计扫描区整体红蓝比例（只算高亮度像素）
+  let totalRed = 0, totalBlue = 0, totalBright = 0;
+  for (let px = 0; px < scanW * scanH; px++) {
+    const idx = px * 4;
+    const r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
+    const brightness = (r + g + b) / 3;
+    if (brightness < 50 || brightness > 240) continue;
+    totalBright++;
+    if (r > 140 && (r - b) > 60 && (r - g) > 40) totalRed++;
+    else if (b > 100 && (b - r) > 50 && (b - g) > 20) totalBlue++;
+  }
+  const redPct = totalBright > 0 ? Math.round(totalRed / totalBright * 100) : 0;
+  const bluePct = totalBright > 0 ? Math.round(totalBlue / totalBright * 100) : 0;
 
-  const summary = `近${recent3.length}根K线颜色：${recent3.join('-')}（像素级RGB检测） | 近5根：${recent5.join('-')} | 区域红${redPct}% 蓝${bluePct}%`;
+  const summary = recent3.length > 0
+    ? `近${recent3.length}根K线颜色：${recent3.join('-')}（像素级RGB检测） | 近5根：${recent5.join('-')} | K线实体红${redPct}% 蓝${bluePct}%`
+    : `未能检测到K线实体（图片格式不适配）`;
 
   return {
     recentColors: recent3,
