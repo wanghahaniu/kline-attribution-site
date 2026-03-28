@@ -754,14 +754,15 @@ async function startAnalysis() {
 
     // 【Step 4: 研报合成】
     renderSteps('report', done);
-    const reportPrompt = `你是顶尖量化宏观分析师。基于以下信息，输出一份结构化 JSON 研报。
-⚠️ 极重要：直接输出裸 JSON 对象，绝对不能有任何 markdown 符号（不要写\`\`\`json，不要写\`\`\`，不要任何前缀或后缀说明），第一个字符必须是 {，最后一个字符必须是 }。
+    const reportPrompt = `你是管理千亿资金的顶尖量化宏观对冲基金首席策略师。你的分析报告将直接决定交易决策，任何敷衍、套话、空洞的表述都是不可接受的。
+
+⚠️ 格式要求：直接输出裸 JSON 对象，第一个字符必须是 {，最后一个字符必须是 }，不要任何 markdown 符号。
 
 【技术面诊断】${JSON.stringify(visionJson)}
 【宏观背景补充】${macroText || "无"}
-【Tavily全球检索结果(2026)】${searchResultsText.slice(0, 6000)}
+【Tavily全球检索结果(2026)】${searchResultsText.slice(0, 8000)}
 
-输出 JSON 结构如下（严格遵守，字段名不变）：
+你必须像写给基金投委会的决策备忘录一样输出以下 JSON：
 {
   "asset": "品种名称",
   "direction": "多头/空头/中性",
@@ -772,32 +773,50 @@ async function startAnalysis() {
     {
       "rank": 1,
       "importance": "primary",
-      "dimension": "驱动维度（如：地缘政治/宏观流动性/供需基本面/资金行为/政策预期）",
-      "title": "核心驱动因素标题（直接命名事件或机制，不超过20字）",
-      "desc": "3-5句深度分析：①该因素的具体表现是什么；②通过何种传导路径影响该品种定价；③有何数据或事件佐证",
+      "dimension": "驱动维度（地缘政治/宏观流动性/供需基本面/资金行为/政策预期，每条必须不同）",
+      "title": "核心驱动因素标题（不超过20字）",
+      "desc": "深度分析（要求极高质量，禁止套话）：①这个因素的最新事实是什么（引用具体数据/事件/日期）；②它通过什么具体的传导机制影响这个品种的定价（不是泛泛而谈，要说清楚因果链的每一环）；③当前市场对这个因素的定价程度如何（已充分反映/尚未充分计入/存在预期差）；④这个因素的持续性和边际变化方向是什么",
       "sources": [{"title": "来源标题", "url": "https://..."}]
     }
   ],
-  "chain": ["传导节点1", "→", "传导节点2", "→", "传导节点3", "→", "最终结果节点"],
-  "risks": ["反转条件1", "反转条件2", "反转条件3"],
-  "scenarios": [
-    {"label": "基准情景", "tag": "base", "probability": "55%", "condition": "触发条件", "outlook": "走势推演"},
-    {"label": "乐观情景", "tag": "bull", "probability": "25%", "condition": "催化剂", "outlook": "上行推演"},
-    {"label": "悲观情景", "tag": "bear", "probability": "20%", "condition": "风险事件", "outlook": "下行推演"}
+  "chain": ["传导起点", "→", "中间环节1", "→", "中间环节2", "→", "该品种价格变化"],
+  "risks": [
+    "具体的反转条件1（必须包含触发阈值或时间窗口，如：若美伊在48小时内重启谈判，原油溢价将收窄15-20美元）",
+    "具体的反转条件2（同上要求）",
+    "具体的反转条件3（同上要求）"
   ],
-  "macro_note": "宏观大背景总结（100字以内）"
+  "scenarios": [
+    {
+      "label": "基准情景",
+      "tag": "base",
+      "probability": "55%",
+      "condition": "具体的前提假设（必须可证伪，如：OPEC维持当前产量至Q2末，美联储6月不降息）",
+      "outlook": "详细的走势推演（必须包含：①方向判断；②预期幅度或目标区间；③推演的时间节奏如几周/几月；④推演的核心逻辑链条。禁止写'震荡为主'等废话）"
+    },
+    {
+      "label": "乐观情景",
+      "tag": "bull",
+      "probability": "25%",
+      "condition": "具体催化剂（可证伪的事件或数据）",
+      "outlook": "详细的上行推演（同上要求：方向+幅度+节奏+逻辑链）"
+    },
+    {
+      "label": "悲观情景",
+      "tag": "bear",
+      "probability": "20%",
+      "condition": "具体风险事件（可证伪）",
+      "outlook": "详细的下行推演（同上要求：方向+幅度+节奏+逻辑链）"
+    }
+  ],
+  "macro_note": "当前宏观环境的整体定调（150字以内，必须有实质内容）"
 }
 
-注意（必须严格执行）：
-- drivers 必须3-4个，按重要性从高到低排列（rank=1最重要），第一个是最直接、最核心、解释力最强的原因
-- 每个 driver 的 dimension 必须不同，禁止从同一维度重复论述，要从「地缘/流动性/供需/资金/政策」等不同角度交叉验证
-- drivers 绝对禁止出现意思重复或高度相似的条目，每条都必须提供独立的、增量的解释维度
-- importance 字段只能是 primary（最重要1个）/ secondary（次要）/ supporting（辅助论证）
-- chain 节点间用"→"分隔，最后一个节点是最终价格结论，会被高亮
-- signal_details 必须3个，基于图像分析结果
-- scenarios 三个情景概率之和=100%，outlook要有具体方向/幅度/节奏判断
-- 所有文字用简体中文，来源title可以是英文（如外媒）
-- ⚠️ 极重要：所有字符串值内部绝对禁止使用英文双引号（"），如需引用请改用「」书名号或（）括号替代`;
+分析质量红线（违反任何一条即为不合格）：
+- drivers 的 desc 禁止出现「可能影响」「或将导致」等模糊表述，必须用「因为X事实→导致Y机制→所以Z结果」的因果链
+- 每个 driver 必须引用至少一个来自 Tavily 检索的具体事实（日期、数据、事件名称），不能全靠推演
+- scenarios 的 outlook 必须包含具体数字（价格区间/涨跌幅度/时间窗口），禁止写「可能上涨」「存在压力」等空话
+- risks 每条必须有具体的触发条件和量化影响预估，不能是「若政策变化则风险加大」这种废话
+- 所有字符串值内部禁止使用英文双引号，改用「」或（）`;
 
     const reportRaw = await callOpenAI(llmBaseUrl, llmApiKey, llmModel, reportPrompt, null, "你是JSON输出机器。务必返回合法的JSON对象。", true);
     logDebug('Report Raw: ' + reportRaw.slice(0, 500));
@@ -836,7 +855,7 @@ async function callClaudeJSON(apiKey, prompt) {
     },
     body: JSON.stringify({
       model,
-      max_tokens: 4000,
+      max_tokens: 6000,
       system: '你只输出JSON，绝对不加任何说明、markdown符号或代码块。',
       messages: [
         { role: 'user', content: prompt },
@@ -882,7 +901,7 @@ async function callOpenAI(baseUrl, apiKey, model, prompt, imageBase64 = null, sy
   const body = {
     model: model,
     messages: messages,
-    max_tokens: 4000
+    max_tokens: 6000
   };
 
   // 如果需要 JSON 格式且模型支持（非必须，为了兼容性我们同时用 system prompt 约束）
