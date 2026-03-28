@@ -1167,9 +1167,9 @@ function renderReport(visionJson, r, imageDataUrl, strategyJson, hitSet) {
 function analyzeKlineColors(canvas, w, h) {
   const ctx = canvas.getContext('2d');
 
-  // 扫描区域：x=10%~70%（跳过盘口），y=15%~85%（跳过标题和底部）
+  // 扫描区域：x=10%~58%（严格避开右侧盘口价格数字），y=15%~85%
   const xStart = Math.floor(w * 0.10);
-  const xEnd = Math.floor(w * 0.70);
+  const xEnd = Math.floor(w * 0.58);
   const yStart = Math.floor(h * 0.15);
   const yEnd = Math.floor(h * 0.85);
   const scanW = xEnd - xStart;
