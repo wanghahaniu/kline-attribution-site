@@ -1194,8 +1194,8 @@ function analyzeKlineColors(canvas, w, h) {
       if (r > 220 && g < 90 && b < 90) {
         pureRedPixels++;
       }
-      // 期货阴线通常是纯蓝或纯绿、青色
-      else if ((b > 200 || g > 200) && r < 90) {
+      // 期货阴线通常是纯蓝或纯绿、青色（注意：部分软件蓝K偏暗，B值只有150-180）
+      else if ((b > 140 || g > 160) && r < 90) {
         pureBluePixels++;
       }
     }
