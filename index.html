@@ -80,20 +80,7 @@ body {
 .image-upload-area:hover { border-color: var(--blue); background: var(--blue-dim); }
 .image-preview { width: 100%; max-height: 200px; object-fit: contain; border-radius: 4px; display: none; }
 
-/* 框选K线区域 */
-.crop-container { position: relative; display: none; margin-top: 10px; cursor: crosshair; user-select: none; }
-.crop-container canvas { display: block; width: 100%; border-radius: 4px; }
-.crop-hint {
-  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
-  background: rgba(0,0,0,0.7); color: var(--yellow); padding: 8px 16px;
-  border-radius: 6px; font-size: 13px; font-weight: 600; pointer-events: none;
-  transition: opacity 0.3s;
-}
-.crop-result {
-  margin-top: 8px; padding: 8px 12px; background: var(--bg-input);
-  border: 1px solid var(--border); border-radius: 6px; font-size: 12px;
-  color: var(--green); display: none;
-}
+/* 框选K线区域 - 已废弃，改用Python OpenCV */
 
 .text-input-area {
   width: 100%; min-height: 80px; padding: 12px 16px; background: var(--bg-input);
@@ -392,12 +379,7 @@ body {
             </div>
             <img class="image-preview" id="imagePreview">
           </div>
-          <!-- 框选K线区域 -->
-          <div class="crop-container" id="cropContainer">
-            <canvas id="cropCanvas"></canvas>
-            <div class="crop-hint" id="cropHint">👆 拖动鼠标框选最右侧3-5根K线</div>
-          </div>
-          <div class="crop-result" id="pixelResult"></div>
+          <div id="pixelResult" style="display:none;margin-top:8px;padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--green);"></div>
         </div>
 
         <div class="input-group">
@@ -505,24 +487,28 @@ function handleImageSelect(e) {
       document.getElementById('imagePreview').src = dataUrl;
       document.getElementById('imagePreview').style.display = 'block';
 
-      // 初始化框选 Canvas
-      state.fullCanvas = canvas; // 保存原始 canvas 用于后续框选分析
-      state.fullW = w;
-      state.fullH = h;
-      const cropCanvas = document.getElementById('cropCanvas');
-      const cropCtx = cropCanvas.getContext('2d');
-      cropCanvas.width = w;
-      cropCanvas.height = h;
-      cropCtx.drawImage(canvas, 0, 0);
-      document.getElementById('cropContainer').style.display = 'block';
-      document.getElementById('cropHint').style.opacity = '1';
-
-      // 先跑一次自动检测作为参考
-      state.pixelAnalysis = analyzeKlineColors(canvas, w, h);
-      const pa = state.pixelAnalysis;
       const pixelEl = document.getElementById('pixelResult');
       pixelEl.style.display = 'block';
-      pixelEl.innerHTML = `🔬 <strong>自动检测</strong>：近3根 <strong>${pa.recentColors.join('-')}</strong> | 近5根 ${pa.recent5Colors.join('-')} | <span style="color:var(--text-muted)">（不准？在图上拖框选中最近K线）</span>`;
+      pixelEl.innerHTML = `⏳ 正在调用 OpenCV 分析K线颜色...`;
+
+      // 调用 Python OpenCV 服务做精准分析
+      fetchPythonAnalysis(dataUrl).then(result => {
+        if (result && result.recent5) {
+          state.pixelAnalysis = {
+            recentColors: result.recent3 || [],
+            recent5Colors: result.recent5 || [],
+            allCandles: result.allCandles || [],
+            redRatio: result.redRatio || 0,
+            blueRatio: result.blueRatio || 0,
+            summary: `OpenCV检测：近3根 ${(result.recent3||[]).join('-')} | 近5根 ${(result.recent5||[]).join('-')} | 红${result.redRatio}% 蓝${result.blueRatio}%`
+          };
+          pixelEl.innerHTML = `🔬 <strong>OpenCV检测</strong>：近3根 <strong style="color:var(--yellow)">${(result.recent3||[]).join('-')}</strong> | 近5根 <strong>${(result.recent5||[]).join('-')}</strong> | 红${result.redRatio}% 蓝${result.blueRatio}%`;
+        } else {
+          state.pixelAnalysis = null;
+          pixelEl.innerHTML = `⚠️ OpenCV服务未启动（请运行 python kline-color-server.py）`;
+          pixelEl.style.color = 'var(--text-muted)';
+        }
+      });
 
       document.getElementById('imagePreview').src = dataUrl;
       document.getElementById('imagePreview').style.display = 'block';
@@ -1197,146 +1183,23 @@ function renderReport(visionJson, r, imageDataUrl, strategyJson, hitSet) {
   }
 }
 
-// --- 框选交互 ---
-(function initCropSelection() {
-  let startX, startY, isDragging = false;
-
-  document.addEventListener('DOMContentLoaded', () => {
-    const container = document.getElementById('cropContainer');
-    const canvas = document.getElementById('cropCanvas');
-
-    canvas.addEventListener('mousedown', (e) => {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      startX = (e.clientX - rect.left) * scaleX;
-      startY = (e.clientY - rect.top) * scaleY;
-      isDragging = true;
-      document.getElementById('cropHint').style.opacity = '0';
+// --- Python OpenCV 服务调用 ---
+async function fetchPythonAnalysis(dataUrl) {
+  try {
+    const res = await fetch('http://localhost:5000/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: dataUrl })
     });
-
-    canvas.addEventListener('mousemove', (e) => {
-      if (!isDragging) return;
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const curX = (e.clientX - rect.left) * scaleX;
-      const curY = (e.clientY - rect.top) * scaleY;
-
-      // 重绘原图 + 选框
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(state.fullCanvas, 0, 0);
-      // 半透明遮罩
-      ctx.fillStyle = 'rgba(0,0,0,0.5)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      // 选框区域清除遮罩（显示原图）
-      const sx = Math.min(startX, curX), sy = Math.min(startY, curY);
-      const sw = Math.abs(curX - startX), sh = Math.abs(curY - startY);
-      ctx.clearRect(sx, sy, sw, sh);
-      ctx.drawImage(state.fullCanvas, sx, sy, sw, sh, sx, sy, sw, sh);
-      // 选框边框
-      ctx.strokeStyle = '#4a9eff';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([6, 3]);
-      ctx.strokeRect(sx, sy, sw, sh);
-      ctx.setLineDash([]);
-    });
-
-    canvas.addEventListener('mouseup', (e) => {
-      if (!isDragging) return;
-      isDragging = false;
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      const scaleY = canvas.height / rect.height;
-      const endX = (e.clientX - rect.left) * scaleX;
-      const endY = (e.clientY - rect.top) * scaleY;
-
-      const sx = Math.round(Math.min(startX, endX));
-      const sy = Math.round(Math.min(startY, endY));
-      const sw = Math.round(Math.abs(endX - startX));
-      const sh = Math.round(Math.abs(endY - startY));
-
-      if (sw < 10 || sh < 10) return; // 框太小忽略
-
-      // 对框选区域做像素分析
-      const result = analyzeKlineColorsInRegion(state.fullCanvas, sx, sy, sw, sh);
-      state.pixelAnalysis = result;
-
-      const pixelEl = document.getElementById('pixelResult');
-      pixelEl.style.display = 'block';
-      pixelEl.innerHTML = `🎯 <strong>框选检测</strong>：近3根 <strong style="color:var(--yellow)">${result.recentColors.join('-')}</strong> | 近5根 ${result.recent5Colors.join('-')} | 框内红${result.redRatio}% 蓝${result.blueRatio}%`;
-    });
-  });
-})();
-
-// 框选区域专用像素分析（极简：只扫框内，无需猜测边界）
-function analyzeKlineColorsInRegion(canvas, rx, ry, rw, rh) {
-  const ctx = canvas.getContext('2d');
-  const imageData = ctx.getImageData(rx, ry, rw, rh);
-  const pixels = imageData.data;
-
-  const colResults = [];
-  for (let x = 0; x < rw; x++) {
-    let redPx = 0, bluePx = 0;
-    for (let y = 0; y < rh; y++) {
-      const idx = (y * rw + x) * 4;
-      const r = pixels[idx], g = pixels[idx+1], b = pixels[idx+2];
-      // 宽松阈值：框内已经排除了大部分干扰
-      if (r > 180 && g < 120 && b < 120) redPx++;
-      else if ((b > 120 || g > 140) && r < 100) bluePx++;
-    }
-    if (redPx >= 2 && redPx > bluePx) colResults.push('红');
-    else if (bluePx >= 2 && bluePx > redPx) colResults.push('蓝');
-    else colResults.push(null);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch (e) {
+    console.log('Python OpenCV 服务未启动:', e.message);
+    return null;
   }
-
-  // 从右往左合并
-  const candles = [];
-  let ci = colResults.length - 1;
-  while (ci >= 0 && candles.length < 8) {
-    if (colResults[ci] === null) { ci--; continue; }
-    const color = colResults[ci];
-    let width = 0;
-    while (ci >= 0) {
-      if (colResults[ci] === color) { width++; ci--; }
-      else if (colResults[ci] === null) {
-        let gap = 0, t = ci;
-        while (t >= 0 && colResults[t] === null && gap < 3) { t--; gap++; }
-        if (t >= 0 && colResults[t] === color) { ci = t; } else break;
-      } else break;
-    }
-    if (width >= 2) candles.push(color);
-  }
-
-  const recent3 = candles.slice(0, 3);
-  const recent5 = candles.slice(0, 5);
-
-  let tR = 0, tB = 0, tAll = 0;
-  for (let i = 0; i < rw * rh; i++) {
-    const idx = i * 4;
-    const r = pixels[idx], g = pixels[idx+1], b = pixels[idx+2];
-    const br = (r+g+b)/3;
-    if (br > 30 && br < 240) {
-      tAll++;
-      if (r > 150 && (r-b) > 40) tR++;
-      else if ((b > 100 || g > 120) && r < 100) tB++;
-    }
-  }
-  const redPct = tAll > 0 ? Math.round(tR/tAll*100) : 0;
-  const bluePct = tAll > 0 ? Math.round(tB/tAll*100) : 0;
-
-  return {
-    recentColors: recent3,
-    recent5Colors: recent5,
-    allCandles: candles,
-    redRatio: redPct,
-    blueRatio: bluePct,
-    summary: recent3.length > 0
-      ? `框选检测：近${recent3.length}根K线颜色：${recent3.join('-')}（像素级RGB，从右往左） | 区域红${redPct}% 蓝${bluePct}%`
-      : '框选区域未检测到有效K线'
-  };
 }
 
+// --- 像素级 K 线颜色检测
 // --- 像素级 K 线颜色检测（极限亮度阈值法，彻底免疫半透明趋势带与均线切割）---
 function analyzeKlineColors(canvas, w, h) {
   const ctx = canvas.getContext('2d');
