@@ -119,10 +119,14 @@ body {
 .report-panel { display: none; margin-top: 30px; }
 
 /* 报告头部：图片 + 核心指标 */
-.report-hero { display: flex; gap: 20px; margin-bottom: 24px; align-items: flex-start; }
+.report-hero {
+  display: flex; gap: 20px; margin-bottom: 24px; align-items: flex-start;
+  background: linear-gradient(135deg, rgba(74,158,255,0.06), rgba(167,139,250,0.06));
+  border: 1px solid var(--border); border-radius: 12px; padding: 20px;
+}
 .report-hero-img { width: 320px; flex-shrink: 0; border-radius: var(--radius); border: 1px solid var(--border); object-fit: contain; max-height: 200px; }
 .report-hero-meta { flex: 1; display: flex; flex-direction: column; gap: 10px; }
-.report-title-main { font-size: 20px; font-weight: 800; color: #fff; }
+.report-title-main { font-size: 22px; font-weight: 800; color: #fff; letter-spacing: 0.5px; }
 .report-subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
 
 /* 信号指标徽章行 */
@@ -144,16 +148,19 @@ body {
 /* 各分区卡片 */
 .section-card {
   background: var(--bg-card); border: 1px solid var(--border);
-  border-radius: var(--radius); margin-bottom: 16px; overflow: hidden;
+  border-radius: 12px; margin-bottom: 18px; overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  transition: border-color 0.2s;
 }
+.section-card:hover { border-color: var(--border-hover); }
 .section-card-header {
   display: flex; align-items: center; gap: 10px;
   padding: 14px 18px; border-bottom: 1px solid var(--border);
-  background: var(--bg-input);
+  background: linear-gradient(90deg, var(--bg-input), var(--bg-card));
 }
-.section-card-icon { font-size: 18px; }
+.section-card-icon { font-size: 20px; }
 .section-card-title { font-size: 15px; font-weight: 700; color: #fff; }
-.section-card-body { padding: 16px 18px; }
+.section-card-body { padding: 18px 20px; }
 
 /* 驱动因素列表 */
 .driver-list { display: flex; flex-direction: column; gap: 12px; }
@@ -179,23 +186,25 @@ body {
 .source-chip:hover { border-color: var(--blue); }
 
 /* 传导链条 */
-.chain-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.chain-row { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; padding: 12px; background: var(--bg-input); border-radius: var(--radius); }
 .chain-node {
-  padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
-  background: var(--bg-input); border: 1px solid var(--border); color: var(--text-primary);
+  padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  background: var(--bg-card); border: 1px solid var(--border); color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
 }
-.chain-arrow { color: var(--text-muted); font-size: 14px; }
-.chain-node.highlight { background: var(--blue-dim); border-color: var(--blue); color: var(--blue); }
+.chain-arrow { color: var(--yellow); font-size: 16px; font-weight: 700; }
+.chain-node.highlight { background: linear-gradient(135deg, var(--blue-dim), var(--purple-dim)); border-color: var(--blue); color: var(--blue); font-weight: 800; }
 
 /* 风险列表 */
-.risk-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.risk-list { list-style: none; display: flex; flex-direction: column; gap: 10px; }
 .risk-item {
-  display: flex; gap: 10px; padding: 10px 14px;
-  background: var(--bg-input); border: 1px solid var(--border);
-  border-left: 3px solid var(--yellow); border-radius: 0 var(--radius) var(--radius) 0;
-  font-size: 13px; color: var(--text-secondary);
+  display: flex; gap: 10px; padding: 12px 16px;
+  background: linear-gradient(90deg, rgba(245,200,66,0.05), transparent);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--yellow); border-radius: 0 10px 10px 0;
+  font-size: 13px; color: var(--text-secondary); line-height: 1.7;
 }
-.risk-icon { flex-shrink: 0; }
+.risk-icon { flex-shrink: 0; font-size: 16px; }
 
 /* 四步技术分析样式 */
 .tech-steps { display: flex; flex-direction: column; gap: 8px; }
@@ -223,18 +232,23 @@ body {
 
 /* 驱动因素重要性样式 */
 .driver-item.primary {
-  background: var(--bg-input);
+  background: linear-gradient(135deg, rgba(74,158,255,0.08), rgba(167,139,250,0.08));
   border: 1px solid rgba(74,158,255,0.4);
   border-left: 3px solid var(--blue);
   border-radius: var(--radius);
-  padding: 14px;
+  padding: 16px;
 }
 .driver-item.secondary {
   border-left: 2px solid var(--border-hover);
-  padding-left: 12px;
+  padding: 12px 12px 12px 14px;
+  background: rgba(255,255,255,0.02);
+  border-radius: var(--radius);
 }
 .driver-item.supporting {
   opacity: 0.85;
+  padding: 10px 12px 10px 14px;
+  border-left: 2px solid var(--border);
+  border-radius: var(--radius);
 }
 .driver-importance-tag {
   display: inline-flex; align-items: center; gap: 4px;
@@ -251,9 +265,11 @@ body {
 
 .scenario-grid { display: flex; flex-direction: column; gap: 10px; }
 .scenario-item {
-  display: flex; gap: 0; border-radius: var(--radius);
+  display: flex; gap: 0; border-radius: 10px;
   border: 1px solid var(--border); overflow: hidden;
+  transition: transform 0.15s, box-shadow 0.15s;
 }
+.scenario-item:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
 .scenario-tag {
   width: 6px; flex-shrink: 0;
 }
@@ -690,7 +706,8 @@ async function startAnalysis() {
 要求：
 1. 必须围绕宏观锚点（如果有）和品种核心定价机制，生成3-5个核心搜索方向。
 2. 必须生成中英双语搜索词，英文词用于抓取路透/彭博等外媒高质量信息。
-3. 品种专属搜索规则（必须执行）：
+3. ⚠️ 时效性要求：所有搜索词必须聚焦最近1-30天的事件和数据。加入时间限定词如「本周」「近期」「3月」「2026年3月」「March 2026」。远期历史事件只有对当前大格局仍有持续影响的才纳入。
+4. 品种专属搜索规则（必须执行）：
    - 黄金/沪金/au：必须包含「央行购金抛售黄金」「黄金ETF资金流」「实际利率美元流动性」和英文词「gold central bank selling 2026」「gold ETF outflows 2026」「gold liquidity crisis 2026」
    - 原油/燃料油：必须包含「OPEC产量」「地缘供应风险」「crude oil inventory 2026」
    - 铜：必须包含「中国铜需求」「铜库存」「copper China demand 2026」
@@ -811,11 +828,14 @@ async function startAnalysis() {
   "macro_note": "当前宏观环境的整体定调（150字以内，必须有实质内容）"
 }
 
-分析质量红线（违反任何一条即为不合格）：
-- drivers 的 desc 禁止出现「可能影响」「或将导致」等模糊表述，必须用「因为X事实→导致Y机制→所以Z结果」的因果链
-- 每个 driver 必须引用至少一个来自 Tavily 检索的具体事实（日期、数据、事件名称），不能全靠推演
-- scenarios 的 outlook 必须包含具体数字（价格区间/涨跌幅度/时间窗口），禁止写「可能上涨」「存在压力」等空话
-- risks 每条必须有具体的触发条件和量化影响预估，不能是「若政策变化则风险加大」这种废话
+分析质量要求：
+- drivers 必须4-5个，覆盖不同维度，按重要性排序。不要因为Tavily没搜到就不写——基于专业知识的合理推演同样有价值，标注来源为「基于宏观推演」即可
+- 鼓励大胆但有逻辑的推测：比如「若该品种跌幅超过X%，可能触发CTA策略的止损盘」「央行可能在下一次议息会议上释放鹰派信号」——只要逻辑链说得通就写进去
+- desc 要有深度：①最新事实；②传导机制（因果链每一环）；③市场当前定价程度（是否存在预期差）；④该因素的边际变化方向
+- scenarios 的 outlook 要有具体方向、幅度区间、时间窗口和逻辑链，但允许用区间表达不确定性（如「预计2-3周内测试XXX支撑位」）
+- risks 要有具体触发条件，但不必强求精确到小数点——「若美联储意外转鸽」「若库存数据大幅超预期」这种定性描述也可以接受
+- 整体风格：像一个经验丰富的交易员在和你讨论行情，有观点、有推理、敢下判断，而不是一个合规部门在写免责声明
+- ⚠️ 时效性要求：优先引用最近1-30天内的事实和数据。超过30天的历史事件，只有对当前大格局仍有持续影响的才可引用（如长期制裁、结构性政策），并需注明其持续性。禁止为了凑论据去挖几个月前的旧闻
 - 所有字符串值内部禁止使用英文双引号，改用「」或（）`;
 
     const reportRaw = await callOpenAI(llmBaseUrl, llmApiKey, llmModel, reportPrompt, null, "你是JSON输出机器。务必返回合法的JSON对象。", true);
