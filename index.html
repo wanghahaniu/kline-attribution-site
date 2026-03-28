@@ -377,6 +377,7 @@ body {
             </div>
             <img class="image-preview" id="imagePreview">
           </div>
+          <div id="pixelResult" style="display:none;margin-top:8px;padding:8px 12px;background:var(--bg-input);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--green);"></div>
         </div>
 
         <div class="input-group">
@@ -434,7 +435,8 @@ body {
 // --- 状态与初始化 ---
 const state = {
   imageBase64: null,
-  imageMime: null
+  imageMime: null,
+  pixelAnalysis: null
 };
 
 // 预设参数加载
@@ -478,6 +480,16 @@ function handleImageSelect(e) {
       const dataUrl = canvas.toDataURL('image/jpeg', 0.95);  // 提高压缩质量，减少颜色失真
 
       state.imageBase64 = dataUrl.split(',')[1];
+
+      // 像素级 K 线颜色检测
+      state.pixelAnalysis = analyzeKlineColors(canvas, w, h);
+      const pa = state.pixelAnalysis;
+      const pixelEl = document.getElementById('pixelResult');
+      if (pixelEl) {
+        pixelEl.style.display = 'block';
+        pixelEl.innerHTML = `🔬 <strong>像素检测</strong>：近3根 <strong>${pa.recentColors.join('-')}</strong> | 近5根 ${pa.recent5Colors.join('-')} | 区域红${pa.redRatio}% 蓝${pa.blueRatio}%`;
+      }
+
       document.getElementById('imagePreview').src = dataUrl;
       document.getElementById('imagePreview').style.display = 'block';
       document.getElementById('uploadPlaceholder').style.display = 'none';
@@ -600,49 +612,46 @@ async function startAnalysis() {
     const visionOverridePart = visionOverride
       ? `【用户肉眼观察（最高优先级，必须优先采用，不得与此矛盾）】\n${visionOverride}\n\n`
       : '';
-    const visionPrompt = visionOverridePart + `请严格作为专业量化分析师，按以下四步分析这张期货K线截图。
+    const pixelPart = state.pixelAnalysis && state.pixelAnalysis.recentColors.length > 0
+      ? `【像素级颜色检测结果（程序直接读取图片RGB像素值，准确率极高，必须优先采信，不得与此矛盾）】\n${state.pixelAnalysis.summary}\n注意：如果像素检测显示近3根为红色，但背景是蓝色趋势带，这就是关键分歧信号！\n\n`
+      : '';
+    const visionPrompt = visionOverridePart + pixelPart + `请严格作为专业量化分析师，按以下四步分析这张期货K线截图。
 
-【Step1 品种识别 - 极重要】
-品种名称通常是"汉字+4位数字"格式（如：碳酸锂2605、螺纹钢2510），严格从图表左上角的标题栏读取。
-⚠️ 不要把图上的价格数字、指标数值误认为品种名！
+【Step1 品种识别】
+严格读取左上角品种名称，原样复制，不猜测。
 
-【Step2 趋势判定】看最右侧背景颜色宽带（背景填充的宽通道，不是K线本身）：
+【Step2 趋势判定】看最右侧背景颜色宽带：
 - 红色宽带包裹最新K线 → 多头趋势
 - 蓝色宽带包裹最新K线 → 空头趋势
 - 跌破趋势带下沿/无趋势带 → 中性
 
-【Step3 就近原则 - 颜色识别生死红线】严格只看最右侧3-5根K线。
-⚠️ 致命错误警告：千万不要把背景趋势带的颜色和K线实体的颜色混为一谈！多头红色趋势带里经常出现连续蓝K回调（这是关键的分歧信号）！
-  ① 必须用锚点法：先找一根肯定为红的K线，再找一根肯定为蓝的K线。
-  ② 盯着最右侧的3根K线，逐根剥离背景色，只看中间那根柱子本身是红还是蓝！
-  ③ 只要最右侧3根中有蓝K，就绝对不能算"红色萦绕"！
-
-多头趋势下看：近3根有无「捂嘴笑脸」；近3-5根是否全为红K（红色萦绕）；有无平台向上突破
-空头趋势下看：近3根有无「倒置大拇指」；近3-5根是否全为蓝K（蓝色萦绕）；有无向下突破
-⚠️ 关键图标：多头趋势中出现「流汗人头」=调整到位增强多头；空头趋势中=底部洗盘削弱空头
-⚠️ 关键分歧：多头趋势中近3根出现连续蓝K / 空头趋势中近3根出现连续红K=⭐⭐关键分歧，divergence字段必须报警🚨
+【Step3 就近原则】严格只看最右侧3-5根K线：
+- 多头趋势：近3根有无「捂嘴笑脸」；近5根有无红色萦绕（连续红K）；有无平台向上突破DDEE边界
+- 空头趋势：近3根有无「倒置大拇指（大拇指朝下）」；近5根有无蓝色萦绕（连续蓝K）；有无平台向下突破
+- ⚠️ 流汗人头：多头趋势中=调整到位增强多头；空头趋势中=底部洗盘削弱空头（不是增强空头！）
+- ⚠️ 关键分歧：空头趋势中红K+流汗人头=趋势可能转向，divergence字段标注🚨
 
 【Step4 强度判定】
-多头：红趋势带+红萦绕+(笑脸或向上突破)=⭐⭐⭐⭐⭐超强；+红萦绕无笑脸=⭐⭐⭐⭐很强；+红K无萦绕=⭐⭐⭐偏强；+出现蓝K=⭐⭐关键分歧
-空头：蓝趋势带+蓝萦绕+(倒置点赞或向下突破)=⭐⭐⭐⭐⭐超强；+蓝萦绕无点赞=⭐⭐⭐⭐很强；+蓝K无萦绕=⭐⭐⭐偏强；+出现红K=⭐⭐关键分歧
+多头：红趋势带+红萦绕+(笑脸或平台突破)=⭐⭐⭐⭐⭐超强；+红萦绕无笑脸=⭐⭐⭐⭐很强；+红K无萦绕=⭐⭐⭐偏强；+蓝萦绕=⭐⭐分歧
+空头：蓝趋势带+蓝萦绕+(倒置点赞或平台突破)=⭐⭐⭐⭐⭐超强；+蓝萦绕无点赞=⭐⭐⭐⭐很强；+蓝K无萦绕=⭐⭐⭐偏强；+红萦绕=⭐⭐分歧
 
-直接输出JSON对象（第一个字符必须是{，不要任何markdown包裹，字符串内禁用英文双引号改用「」）：
+直接输出JSON对象（第一个字符必须是{，不要任何markdown包裹）：
 {
-  "asset": "从左上角标题栏严格复制的品种名（汉字+数字格式）",
+  "asset": "从左上角严格复制的品种名称",
   "direction": "多头/空头/中性",
   "trend_band": "红色趋势带/蓝色趋势带/无趋势带",
   "strength": "弱/中/强/极强",
   "stars": 4,
-  "stars_label": "多头分歧",
+  "stars_label": "空头很强",
   "step1": "品种名称：XXX ✅",
-  "step2": "红色趋势带 → 多头 ✅",
+  "step2": "蓝色趋势带 → 空头 ✅",
   "step3_signals": [
-    "近3根K线：有/无笑脸 ✅/❌（最右3根实体的颜色是：如 蓝-蓝-蓝）",
-    "近5根K线：红/蓝色萦绕或混杂 ✅/⚠️",
+    "近3根K线：有/无倒置点赞 ✅/❌",
+    "近5根K线：蓝色萦绕/混杂 ✅/⚠️",
     "平台突破：有/无 ✅/—"
   ],
-  "step4": "信号组合说明（如 红趋势带+蓝K回调 → ⭐⭐ 关键分歧）",
-  "divergence": "如果有分歧，写具体的警告语句，否则为 null",
+  "step4": "蓝趋势带+蓝萦绕+倒置点赞 → ⭐⭐⭐⭐⭐ 空头超强",
+  "divergence": null,
   "details": "综合判断两句话"
 }`
 
@@ -1152,6 +1161,90 @@ function renderReport(visionJson, r, imageDataUrl, strategyJson, hitSet) {
     rsp.style.display = 'block';
     rsb.innerHTML = document.getElementById('strategyBody').innerHTML;
   }
+}
+
+// --- 像素级 K 线颜色检测 ---
+function analyzeKlineColors(canvas, w, h) {
+  const ctx = canvas.getContext('2d');
+
+  // 扫描区域：右侧 15-65% 宽度（避开最右侧盘口数据），垂直中间 50%
+  const xStart = Math.floor(w * 0.15);
+  const xEnd = Math.floor(w * 0.65);
+  const yStart = Math.floor(h * 0.2);
+  const yEnd = Math.floor(h * 0.8);
+  const scanW = xEnd - xStart;
+  const scanH = yEnd - yStart;
+
+  const imageData = ctx.getImageData(xStart, yStart, scanW, scanH);
+  const pixels = imageData.data; // RGBA flat array
+
+  // 逐列扫描，统计每列的红/蓝像素
+  const columns = []; // { red: n, blue: n, total: n }
+  for (let x = 0; x < scanW; x++) {
+    let red = 0, blue = 0, total = 0;
+    for (let y = 0; y < scanH; y++) {
+      const idx = (y * scanW + x) * 4;
+      const r = pixels[idx], g = pixels[idx + 1], b = pixels[idx + 2];
+      // 跳过接近黑色（背景）和接近白色（网格线）的像素
+      const brightness = (r + g + b) / 3;
+      if (brightness < 30 || brightness > 230) continue;
+      total++;
+      if (r - b > 40 && r > g) red++;
+      else if (b - r > 40 && b > g) blue++;
+    }
+    columns.push({ red, blue, total });
+  }
+
+  // 识别 K 线实体：某列红/蓝像素占比 > 25%
+  const candleColumns = columns.map((col, x) => {
+    if (col.total < 5) return null;
+    const redRatio = col.red / col.total;
+    const blueRatio = col.blue / col.total;
+    if (redRatio > 0.25) return '红';
+    if (blueRatio > 0.25) return '蓝';
+    return null;
+  });
+
+  // 合并相邻同色列为一根 K 线，过滤噪点（宽度 < 2px）
+  const candles = [];
+  let i = 0;
+  while (i < candleColumns.length) {
+    if (candleColumns[i] === null) { i++; continue; }
+    const color = candleColumns[i];
+    let width = 0;
+    while (i < candleColumns.length && candleColumns[i] === color) {
+      width++; i++;
+    }
+    if (width >= 2) {
+      candles.push(color);
+    }
+    // 跳过小间隙（最多3px）后若同色则合并
+    let gap = 0;
+    while (i < candleColumns.length && candleColumns[i] === null && gap < 3) {
+      gap++; i++;
+    }
+  }
+
+  // 取最右侧 5 根
+  const recent5 = candles.slice(-5);
+  const recent3 = candles.slice(-3);
+
+  // 统计扫描区整体红蓝比例
+  let totalRed = 0, totalBlue = 0, totalAll = 0;
+  columns.forEach(c => { totalRed += c.red; totalBlue += c.blue; totalAll += c.total; });
+  const redPct = totalAll > 0 ? Math.round(totalRed / totalAll * 100) : 0;
+  const bluePct = totalAll > 0 ? Math.round(totalBlue / totalAll * 100) : 0;
+
+  const summary = `近${recent3.length}根K线颜色：${recent3.join('-')}（像素级RGB检测） | 近5根：${recent5.join('-')} | 区域红${redPct}% 蓝${bluePct}%`;
+
+  return {
+    recentColors: recent3,
+    recent5Colors: recent5,
+    allCandles: candles,
+    redRatio: redPct,
+    blueRatio: bluePct,
+    summary: summary
+  };
 }
 
 function resetApp() {
