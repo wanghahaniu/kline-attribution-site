@@ -691,7 +691,7 @@ function handleImageSelect(e) {
             trendBand: result.trendBand || null,
             summary: result.summary || `OpenCV检测：近3根 ${(result.recent3||[]).join('-')} | 近5根 ${(result.recent5||[]).join('-')} | 红${result.redRatio}% 蓝${result.blueRatio}%`
           };
-          const trendLabel = result.trendBand ? `【趋势带：${result.trendBand}色】` : '';
+          const trendLabel = result.trendBand ? `【趋势带：${result.trendBand}色】` : '【无趋势带】';
           pixelEl.innerHTML = `🔬 <strong>OpenCV检测</strong>：${trendLabel} 近3根 <strong style="color:var(--yellow)">${(result.recent3||[]).join('-')}</strong> | 近5根 <strong>${(result.recent5||[]).join('-')}</strong> | 红${result.redRatio}% 蓝${result.blueRatio}%`;
         } else {
           state.pixelAnalysis = null;
