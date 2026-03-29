@@ -237,10 +237,39 @@ body {
     display: none !important;
   }
 
-  /* 打印区填满页面 */
+  /* 打印区填满页面，减少整体外部留白 */
   .main { flex: none; display: block; overflow: visible; }
   .content { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
   #reportPanel { display: block !important; margin-top: 0 !important; }
+
+  /* 放大打印字体，减少内部卡片留白 */
+  body { font-size: 15px !important; line-height: 1.6 !important; }
+  .report-hero { padding: 15px !important; margin-bottom: 15px !important; }
+  .report-hero-img { max-height: 160px !important; }
+  .report-title-main { font-size: 24px !important; }
+  .signal-detail-card { font-size: 14px !important; padding: 10px 14px !important; }
+
+  .section-card { margin-bottom: 15px !important; border-radius: 8px !important; }
+  .section-card-header { padding: 10px 15px !important; }
+  .section-card-title { font-size: 16px !important; }
+  .section-card-body { padding: 15px !important; }
+
+  .driver-item { padding: 15px !important; gap: 12px !important; }
+  .driver-title { font-size: 17px !important; }
+  .driver-desc { font-size: 15px !important; line-height: 1.6 !important; }
+  .driver-list { gap: 15px !important; }
+
+  .conclusion-card { margin-bottom: 15px !important; }
+  .conclusion-header { padding: 10px 15px !important; }
+  .conclusion-judgment { font-size: 20px !important; padding: 12px 15px 8px !important; }
+  .conclusion-finding { font-size: 14px !important; }
+  .conclusion-action { font-size: 14px !important; margin: 0 15px 12px !important; padding: 8px 12px !important; }
+
+  .scenario-table tbody td { font-size: 14px !important; padding: 10px !important; }
+  .scenario-table thead th { font-size: 13px !important; padding: 8px 10px !important; }
+  .scenario-label { font-size: 14px !important; }
+
+  .tech-step-content { font-size: 14px !important; }
 
   /* 防止卡片断层 */
   .section-card, .conclusion-card, .driver-item, .report-hero {
