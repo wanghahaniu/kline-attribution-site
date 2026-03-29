@@ -214,6 +214,12 @@ body {
   color: var(--blue); text-decoration: none; transition: all 0.2s;
 }
 .source-chip:hover { border-color: var(--blue); background: var(--blue-dim); }
+
+/* PDF 导出专用：防止卡片在分页时被拦腰斩断 */
+.html2pdf__page-break {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
 .source-chip {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 3px 10px; border-radius: 12px; font-size: 11px;
@@ -1525,32 +1531,46 @@ async function exportPDF() {
   try {
     const reportEl = document.getElementById('reportPanel');
 
-    // 临时调整样式以适应PDF
-    const main = document.querySelector('.main');
-    const origOverflow = main.style.overflow;
-    main.style.overflow = 'visible';
-    reportEl.style.width = '860px';
+    // 1. 临时隐藏底部的按钮行和透视面板
+    const btnRow = reportEl.querySelector('div[style*="border-top"]');
+    const strategyPanel = document.getElementById('reportStrategyPanel');
+    if (btnRow) btnRow.style.display = 'none';
+    if (strategyPanel) strategyPanel.style.display = 'none';
+
+    // 2. 给每个卡片加 pagebreak class，防止分页时被从中间切断
+    const cards = reportEl.querySelectorAll('.section-card, .conclusion-card, .driver-item, .report-hero');
+    cards.forEach(c => c.classList.add('html2pdf__page-break'));
+
+    // 3. 临时调整排版以适应 A4 尺寸
+    const origWidth = reportEl.style.width;
+    const origPadding = reportEl.style.padding;
+    reportEl.style.width = '820px'; // 适配 A4 比例
+    reportEl.style.padding = '20px'; // 加上内边距
 
     const opt = {
-      margin: [10, 10, 10, 10],
+      margin: [15, 10, 15, 10], // 上右下左边距 (mm)
       filename: `K线归因研报_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.pdf`,
-      image: { type: 'jpeg', quality: 0.95 },
+      image: { type: 'jpeg', quality: 0.98 },
       html2canvas: {
-        scale: 2,
+        scale: 2,  // 提高清晰度
         useCORS: true,
-        backgroundColor: '#0d0f14',
-        scrollY: 0,
-        windowWidth: 900
+        backgroundColor: '#0d0f14', // 强制黑底，与网页主题一致
+        windowWidth: 860,
+        scrollY: 0
       },
       jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+      pagebreak: { mode: ['css', 'legacy'] } // 启用 css 防分页切断
     };
 
     await html2pdf().set(opt).from(reportEl).save();
 
-    // 恢复样式
-    main.style.overflow = origOverflow;
-    reportEl.style.width = '';
+    // 4. 恢复所有样式和隐藏的元素
+    reportEl.style.width = origWidth;
+    reportEl.style.padding = origPadding;
+    cards.forEach(c => c.classList.remove('html2pdf__page-break'));
+    if (btnRow) btnRow.style.display = 'flex';
+    if (strategyPanel) strategyPanel.style.display = 'block';
+
   } catch (e) {
     console.error('PDF导出失败:', e);
     alert('PDF导出失败: ' + e.message);
