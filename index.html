@@ -217,6 +217,14 @@ body {
 
 /* PDF 导出专用：防止卡片在分页时被拦腰斩断 */
 @media print {
+  /* 解除所有高度和滚动条限制，允许内容无限向下延展，解决只打印第一页的问题 */
+  html, body, .app, .main, .content {
+    height: auto !important;
+    min-height: auto !important;
+    overflow: visible !important;
+    position: static !important;
+  }
+
   /* 强制打印背景色 */
   body, .app, .main, .content {
     background: #0d0f14 !important;
