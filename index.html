@@ -163,20 +163,57 @@ body {
 .section-card-body { padding: 18px 20px; }
 
 /* 驱动因素列表 */
-.driver-list { display: flex; flex-direction: column; gap: 12px; }
-.driver-item { display: flex; gap: 12px; }
-.driver-num {
-  width: 24px; height: 24px; border-radius: 50%; flex-shrink: 0;
-  background: var(--blue-dim); border: 1px solid var(--blue);
-  color: var(--blue); font-size: 11px; font-weight: 700;
-  display: flex; align-items: center; justify-content: center; margin-top: 2px;
+.driver-list { display: flex; flex-direction: column; gap: 20px; }
+.driver-item {
+  display: flex; gap: 16px; align-items: flex-start;
+  background: var(--bg-input); border: 1px solid var(--border);
+  border-radius: 12px; padding: 20px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  transition: transform 0.2s, box-shadow 0.2s;
 }
-.driver-body { flex: 1; }
-.driver-title { font-size: 13px; font-weight: 700; color: #fff; margin-bottom: 4px; }
-.driver-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.7; }
+.driver-item:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,0,0,0.3); }
 
-/* 来源引用 */
-.source-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+/* 核心驱动（Primary）的高亮样式 */
+.driver-item.primary {
+  background: linear-gradient(135deg, rgba(74,158,255,0.06), rgba(167,139,250,0.06));
+  border: 1px solid rgba(74,158,255,0.4);
+  box-shadow: 0 4px 20px rgba(74,158,255,0.1);
+}
+
+.driver-num {
+  width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  color: #fff; font-size: 15px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2px 8px rgba(74,158,255,0.4);
+  margin-top: 2px;
+}
+.driver-item.secondary .driver-num {
+  background: var(--bg-card); color: var(--text-muted);
+  border: 1px solid var(--border); box-shadow: none;
+}
+.driver-item.supporting { opacity: 0.9; }
+
+.driver-body { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+.driver-header-meta { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 2px; }
+.driver-title { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: 0.5px; line-height: 1.4; }
+.driver-item.primary .driver-title { color: var(--blue); }
+
+.driver-desc {
+  font-size: 14px; color: var(--text-primary); line-height: 1.8;
+  letter-spacing: 0.2px; text-align: justify;
+}
+.driver-desc strong { color: #fff; font-weight: 600; }
+
+/* 来源引用美化 */
+.source-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; padding-top: 12px; border-top: 1px dashed rgba(255,255,255,0.1); }
+.source-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 12px; border-radius: 12px; font-size: 11px;
+  background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+  color: var(--blue); text-decoration: none; transition: all 0.2s;
+}
+.source-chip:hover { border-color: var(--blue); background: var(--blue-dim); }
 .source-chip {
   display: inline-flex; align-items: center; gap: 4px;
   padding: 3px 10px; border-radius: 12px; font-size: 11px;
@@ -210,8 +247,8 @@ body {
 .tech-steps { display: flex; flex-direction: column; gap: 8px; }
 .tech-step-row {
   display: flex; gap: 10px; align-items: flex-start;
-  padding: 10px 14px; border-radius: 6px;
-  background: var(--bg-input); border: 1px solid var(--border);
+  padding: 12px 14px; border-radius: 8px;
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
 }
 .tech-step-label {
   font-size: 10px; font-weight: 700; color: var(--blue);
@@ -230,26 +267,7 @@ body {
   display: flex; gap: 8px; align-items: flex-start;
 }
 
-/* 驱动因素重要性样式 */
-.driver-item.primary {
-  background: linear-gradient(135deg, rgba(74,158,255,0.08), rgba(167,139,250,0.08));
-  border: 1px solid rgba(74,158,255,0.4);
-  border-left: 3px solid var(--blue);
-  border-radius: var(--radius);
-  padding: 16px;
-}
-.driver-item.secondary {
-  border-left: 2px solid var(--border-hover);
-  padding: 12px 12px 12px 14px;
-  background: rgba(255,255,255,0.02);
-  border-radius: var(--radius);
-}
-.driver-item.supporting {
-  opacity: 0.85;
-  padding: 10px 12px 10px 14px;
-  border-left: 2px solid var(--border);
-  border-radius: var(--radius);
-}
+/* 驱动因素重要性样式（已在上方重构） */
 .driver-importance-tag {
   display: inline-flex; align-items: center; gap: 4px;
   font-size: 10px; font-weight: 700; padding: 2px 7px;
@@ -332,7 +350,84 @@ body {
 .strategy-query-miss { color: var(--text-muted); font-size: 11px; margin-left: 4px; }
 
 .debug-info { margin-top: 10px; font-size: 11px; color: var(--text-muted); background: var(--bg-input); padding: 8px; border-radius: 4px; white-space: pre-wrap; word-break: break-all; max-height: 150px; overflow-y: auto; display: none; }
+
+/* 核心结论板块 */
+.conclusion-card {
+  background: linear-gradient(135deg, rgba(74,158,255,0.10), rgba(167,139,250,0.10));
+  border: 1px solid rgba(74,158,255,0.35);
+  border-radius: 12px; margin-bottom: 18px; overflow: hidden;
+  box-shadow: 0 2px 12px rgba(74,158,255,0.08);
+}
+.conclusion-header {
+  display: flex; align-items: center; gap: 10px;
+  padding: 14px 18px; border-bottom: 1px solid rgba(74,158,255,0.2);
+  background: linear-gradient(90deg, rgba(74,158,255,0.12), rgba(167,139,250,0.08));
+}
+.conclusion-header .section-card-icon { font-size: 22px; }
+.conclusion-header .section-card-title { font-size: 16px; font-weight: 800; color: #fff; }
+.conclusion-judgment {
+  font-size: 18px; font-weight: 800; color: #fff; line-height: 1.6;
+  padding: 16px 20px 10px; letter-spacing: 0.3px;
+}
+.conclusion-findings {
+  display: flex; flex-direction: column; gap: 8px; padding: 0 20px 12px;
+}
+.conclusion-finding {
+  display: flex; gap: 8px; align-items: flex-start; font-size: 13px; color: var(--text-secondary); line-height: 1.7;
+}
+.conclusion-finding-icon { color: var(--blue); flex-shrink: 0; margin-top: 2px; font-size: 14px; }
+.conclusion-action {
+  margin: 0 20px 16px; padding: 10px 14px;
+  background: rgba(245,200,66,0.08); border: 1px solid rgba(245,200,66,0.25);
+  border-radius: 8px; font-size: 13px; color: var(--yellow); line-height: 1.6;
+  display: flex; gap: 8px; align-items: flex-start;
+}
+
+/* 情景推演表格 */
+.scenario-table {
+  width: 100%; border-collapse: separate; border-spacing: 0;
+  border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+}
+.scenario-table thead th {
+  background: var(--bg-input); padding: 10px 14px;
+  font-size: 12px; font-weight: 700; color: var(--text-secondary);
+  text-align: left; border-bottom: 1px solid var(--border);
+  letter-spacing: 0.5px;
+}
+.scenario-table tbody td {
+  padding: 12px 14px; font-size: 13px; color: var(--text-secondary);
+  line-height: 1.7; border-bottom: 1px solid var(--border); vertical-align: top;
+}
+.scenario-table tbody tr:last-child td { border-bottom: none; }
+.scenario-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+.scenario-table .sc-label-cell {
+  display: flex; align-items: center; gap: 8px; white-space: nowrap;
+}
+.scenario-table .sc-tag-dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.sc-tag-dot.base { background: var(--blue); }
+.sc-tag-dot.bull { background: var(--green); }
+.sc-tag-dot.bear { background: var(--red); }
+.scenario-table .sc-label-text { font-weight: 700; color: #fff; }
+.scenario-table .sc-prob {
+  font-size: 12px; font-weight: 700; padding: 2px 10px;
+  border-radius: 10px; white-space: nowrap; text-align: center;
+}
+.sc-prob.base { background: var(--blue-dim); color: var(--blue); }
+.sc-prob.bull { background: var(--green-dim); color: var(--green); }
+.sc-prob.bear { background: var(--red-dim); color: var(--red); }
+
+/* PDF 导出按钮 */
+.btn-export {
+  padding: 10px 28px; background: linear-gradient(135deg, var(--green), #2a9d6a);
+  border: none; border-radius: var(--radius); color: #fff; font-size: 14px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 8px; transition: opacity 0.2s;
+}
+.btn-export:hover { opacity: 0.9; }
+.btn-export:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -349,14 +444,14 @@ body {
     <div class="sidebar-section">
       <div class="sidebar-label">大模型接口配置 (OpenAI格式)</div>
       <div class="api-input-wrap">
-        <input type="text" class="api-input" id="llmBaseUrl" placeholder="接口地址 (默认: https://api.openai.com/v1)">
+        <input type="text" class="api-input" id="llmBaseUrl" placeholder="接口地址 (默认: https://bot.ccnccn.cn/v1)">
       </div>
       <div class="api-input-wrap">
         <input type="password" class="api-input" id="llmApiKey" placeholder="API Key (sk-...)">
         <button class="api-toggle" onclick="toggleApiKey('llmApiKey')">👁</button>
       </div>
       <div class="api-input-wrap">
-        <input type="text" class="api-input" id="llmModel" placeholder="视觉/文本模型名 (默认: gpt-4o)">
+        <input type="text" class="api-input" id="llmModel" placeholder="视觉/文本模型名 (默认: claude-sonnet-4-6)">
       </div>
     </div>
 
@@ -443,6 +538,7 @@ body {
         </div>
         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; gap: 10px;">
           <button class="btn-primary" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary)" onclick="resetApp()">🔄 重新分析</button>
+          <button class="btn-export" id="exportPdfBtn" onclick="exportPDF()">📄 导出 PDF</button>
         </div>
       </div>
     </div>
@@ -458,10 +554,19 @@ const state = {
 };
 
 // 预设参数加载
-const DEFAULT_URL = localStorage.getItem('kline_llm_url') || 'https://api.openai.com/v1';
-const DEFAULT_KEY = localStorage.getItem('kline_llm_key') || '';
-const DEFAULT_MODEL = localStorage.getItem('kline_llm_model') || 'gpt-4o';
+const DEFAULT_URL = localStorage.getItem('kline_llm_url') || 'https://bot.ccnccn.cn/v1';
+const DEFAULT_KEY = localStorage.getItem('kline_llm_key') || 'sk-NuKAg9UzfeCAqwxsc8E31rFU6hvXNpAv7p3Bweufo9VoJZjI';
+const DEFAULT_MODEL = localStorage.getItem('kline_llm_model') || 'claude-sonnet-4-6';
 const DEFAULT_TAVILY = localStorage.getItem('kline_tavily_key') || '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';
+
+// 一次性迁移：清除旧配置，强制用新默认值
+const _oldUrl = localStorage.getItem('kline_llm_url');
+const _oldModel = localStorage.getItem('kline_llm_model');
+if (_oldUrl === 'https://api.openai.com/v1' || _oldModel === 'gpt-4o' || _oldModel === 'claude-sonnet-4-5') {
+  localStorage.removeItem('kline_llm_url');
+  localStorage.removeItem('kline_llm_model');
+  localStorage.removeItem('kline_llm_key');
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('llmBaseUrl').value = DEFAULT_URL;
@@ -516,9 +621,11 @@ function handleImageSelect(e) {
             allCandles: result.allCandles || [],
             redRatio: result.redRatio || 0,
             blueRatio: result.blueRatio || 0,
-            summary: `OpenCV检测：近3根 ${(result.recent3||[]).join('-')} | 近5根 ${(result.recent5||[]).join('-')} | 红${result.redRatio}% 蓝${result.blueRatio}%`
+            trendBand: result.trendBand || null,
+            summary: result.summary || `OpenCV检测：近3根 ${(result.recent3||[]).join('-')} | 近5根 ${(result.recent5||[]).join('-')} | 红${result.redRatio}% 蓝${result.blueRatio}%`
           };
-          pixelEl.innerHTML = `🔬 <strong>OpenCV检测</strong>：近3根 <strong style="color:var(--yellow)">${(result.recent3||[]).join('-')}</strong> | 近5根 <strong>${(result.recent5||[]).join('-')}</strong> | 红${result.redRatio}% 蓝${result.blueRatio}%`;
+          const trendLabel = result.trendBand ? `【趋势带：${result.trendBand}色】` : '';
+          pixelEl.innerHTML = `🔬 <strong>OpenCV检测</strong>：${trendLabel} 近3根 <strong style="color:var(--yellow)">${(result.recent3||[]).join('-')}</strong> | 近5根 <strong>${(result.recent5||[]).join('-')}</strong> | 红${result.redRatio}% 蓝${result.blueRatio}%`;
         } else {
           state.pixelAnalysis = null;
           pixelEl.innerHTML = `⚠️ OpenCV服务未启动（请运行 python kline-color-server.py）`;
@@ -668,8 +775,10 @@ async function startAnalysis() {
 - ⚠️ 关键分歧：空头趋势中红K+流汗人头=趋势可能转向，divergence字段标注🚨
 
 【Step4 强度判定】
-多头：红趋势带+红萦绕+(笑脸或平台突破)=⭐⭐⭐⭐⭐超强；+红萦绕无笑脸=⭐⭐⭐⭐很强；+红K无萦绕=⭐⭐⭐偏强；+蓝萦绕=⭐⭐分歧
-空头：蓝趋势带+蓝萦绕+(倒置点赞或平台突破)=⭐⭐⭐⭐⭐超强；+蓝萦绕无点赞=⭐⭐⭐⭐很强；+蓝K无萦绕=⭐⭐⭐偏强；+红萦绕=⭐⭐分歧
+多头：红趋势带+红萦绕+(笑脸或平台突破)=⭐⭐⭐⭐⭐超强；+红萦绕无笑脸=⭐⭐⭐⭐很强；+红K无萦绕=⭐⭐⭐偏强；+蓝萦绕=⭐⭐分歧(决战时刻)
+空头：蓝趋势带+蓝萦绕+(倒置点赞或平台突破)=⭐⭐⭐⭐⭐超强；+蓝萦绕无点赞=⭐⭐⭐⭐很强；+蓝K无萦绕=⭐⭐⭐偏强；+红萦绕=⭐⭐分歧(决战时刻)
+
+🚨 严禁越界推断：技术面分析必须严格依据上述客观信号，禁止在多头趋势（红带）中直接给出「做空/空头格局」的结论，只能定义为「分歧严重/关键抉择期」。技术分析是客观事实的映射，不能自行臆想反转。反转逻辑必须在后续的宏观推演环节去论证。
 
 直接输出JSON对象（第一个字符必须是{，不要任何markdown包裹）：
 {
@@ -776,6 +885,13 @@ async function startAnalysis() {
 
 ⚠️ 格式要求：直接输出裸 JSON 对象，第一个字符必须是 {，最后一个字符必须是 }，不要任何 markdown 符号。
 
+🚨🚨🚨 最高优先级规则——禁止用内置知识编造实时数据 🚨🚨🚨
+1. 价格、库存、持仓、资金流、利率等一切实时数据，只能引用下方【Tavily全球检索结果】中的原文。
+2. 如果Tavily搜到了当前价格（如「原油报价102.5美元」），必须直接采用，不得用你训练数据中的旧价格覆盖。
+3. 如果Tavily没搜到某个具体数据，写「暂无最新数据」，绝对不能编造数字。
+4. 你的内置知识只能用于分析框架、传导逻辑、历史规律等结构性知识，不能用于推断当前市场状态。
+违反以上任何一条 = 报告作废。
+
 【技术面诊断】${JSON.stringify(visionJson)}
 【宏观背景补充】${macroText || "无"}
 ⚠️ 当前日期：${today}。所有分析必须基于此日期之前已发生的事实，绝对禁止编造未来日期的事件。
@@ -795,6 +911,16 @@ ${macroText ? `⚠️ 极重要：用户输入了宏观大事件「${macroText}�
   "strength": "弱/中/强/极强",
   "signal_summary": "一句话概括当前技术面形态与信号组合",
   "signal_details": ["信号点1", "信号点2", "信号点3"],
+  "core_conclusion": {
+    "judgment": "一句话定论（25字以内，如：空头格局确立，顺势做空为主）",
+    "key_findings": [
+      "关键发现1（一句话，最重要的事实或判断）",
+      "关键发现2",
+      "关键发现3",
+      "关键发现4"
+    ],
+    "action_hint": "操作建议（一句话，如：逢反弹至XXX区间轻仓试空，止损XXX上方）"
+  },
   "drivers": [
     {
       "rank": 1,
@@ -817,6 +943,7 @@ ${macroText ? `⚠️ 极重要：用户输入了宏观大事件「${macroText}�
       "tag": "base",
       "probability": "55%",
       "condition": "具体的前提假设（必须可证伪，如：OPEC维持当前产量至Q2末，美联储6月不降息）",
+      "evidence": "支撑这个情景的核心论据（引用1-2条关键事实或数据，如：当前库存处于5年低位，季节性需求支撑）",
       "outlook": "详细的走势推演（必须包含：①方向判断；②预期幅度或目标区间；③推演的时间节奏如几周/几月；④推演的核心逻辑链条。禁止写'震荡为主'等废话）"
     },
     {
@@ -824,6 +951,7 @@ ${macroText ? `⚠️ 极重要：用户输入了宏观大事件「${macroText}�
       "tag": "bull",
       "probability": "25%",
       "condition": "具体催化剂（可证伪的事件或数据）",
+      "evidence": "支撑论据（1-2条关键事实或数据）",
       "outlook": "详细的上行推演（同上要求：方向+幅度+节奏+逻辑链）"
     },
     {
@@ -831,6 +959,7 @@ ${macroText ? `⚠️ 极重要：用户输入了宏观大事件「${macroText}�
       "tag": "bear",
       "probability": "20%",
       "condition": "具体风险事件（可证伪）",
+      "evidence": "支撑论据（1-2条关键事实或数据）",
       "outlook": "详细的下行推演（同上要求：方向+幅度+节奏+逻辑链）"
     }
   ],
@@ -1071,25 +1200,31 @@ function renderReport(visionJson, r, imageDataUrl, strategyJson, hitSet) {
   // 驱动因素（按 rank 排序，primary 最突出）
   const sortedDrivers = (r.drivers || []).slice().sort((a, b) => (a.rank || 99) - (b.rank || 99));
   const importanceLabelMap = { primary: '🔑 核心驱动', secondary: '⚡ 次要驱动', supporting: '📎 辅助论证' };
+
   const driversHtml = sortedDrivers.map((d, i) => {
     const imp = d.importance || (i === 0 ? 'primary' : 'secondary');
     const impLabel = importanceLabelMap[imp] || '⚡ 次要驱动';
     const impTagClass = `tag-${imp}`;
     const itemClass = `driver-item ${imp}`;
+
+    // 使用正则给 ①②③④ 加上微量颜色，提高可读性，但不破坏连续文本的完整性
+    let formattedDesc = (d.desc || '').replace(/([①②③④])/g, '<strong style="color:var(--yellow);margin-right:2px">$1</strong>');
+
     const srcHtml = (d.sources || []).map(s =>
       s.url
         ? `<a class="source-chip" href="${s.url}" target="_blank">🔗 ${s.title}</a>`
         : `<span class="source-chip" style="color:var(--text-muted);cursor:default">📌 ${s.title}</span>`
     ).join('');
+
     return `<div class="${itemClass}">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-        <div class="driver-num">${i + 1}</div>
-        <span class="driver-importance-tag ${impTagClass}">${impLabel}</span>
-        ${d.dimension ? `<span class="driver-dimension">· ${d.dimension}</span>` : ''}
-      </div>
+      <div class="driver-num">${i + 1}</div>
       <div class="driver-body">
-        <div class="driver-title">${d.title}</div>
-        <div class="driver-desc">${d.desc}</div>
+        <div class="driver-header-meta">
+          <div class="driver-title">${d.title}</div>
+          <span class="driver-importance-tag ${impTagClass}">${impLabel}</span>
+          ${d.dimension ? `<span class="driver-dimension">· ${d.dimension}</span>` : ''}
+        </div>
+        <div class="driver-desc">${formattedDesc}</div>
         ${srcHtml ? `<div class="source-chips">${srcHtml}</div>` : ''}
       </div>
     </div>`;
@@ -1129,22 +1264,30 @@ function renderReport(visionJson, r, imageDataUrl, strategyJson, hitSet) {
     ${visionJson.divergence ? `<div class="divergence-alert">🚨 <span><strong>分歧警告：</strong>${visionJson.divergence}</span></div>` : ''}
   </div>`;
 
-  // 情景分析
-  const scenarioTagMap = { base: '基准情景', bull: '乐观情景', bear: '悲观情景' };
-  const scenariosHtml = (r.scenarios || []).map(sc => {
-    const tag = sc.tag || 'base';
-    return `<div class="scenario-item">
-      <div class="scenario-tag ${tag}"></div>
-      <div class="scenario-body">
-        <div class="scenario-header">
-          <span class="scenario-label">${sc.label || scenarioTagMap[tag]}</span>
-          <span class="scenario-prob ${tag}">${sc.probability || ''}</span>
-        </div>
-        <div class="scenario-condition">📌 触发条件：${sc.condition || ''}</div>
-        <div class="scenario-outlook">${sc.outlook || ''}</div>
-      </div>
-    </div>`;
-  }).join('');
+  // 情景分析（表格形式）
+  const scenariosHtml = `<table class="scenario-table">
+    <thead>
+      <tr>
+        <th style="width:110px">情景</th>
+        <th style="width:70px">概率</th>
+        <th style="width:22%">触发条件</th>
+        <th style="width:22%">论据</th>
+        <th>结果推演</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${(r.scenarios || []).map(sc => {
+        const tag = sc.tag || 'base';
+        return `<tr>
+          <td><div class="sc-label-cell"><span class="sc-tag-dot ${tag}"></span><span class="sc-label-text">${sc.label || ''}</span></div></td>
+          <td><span class="sc-prob ${tag}">${sc.probability || ''}</span></td>
+          <td>${sc.condition || ''}</td>
+          <td>${sc.evidence || ''}</td>
+          <td>${sc.outlook || ''}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
 
   // 风险列表
   const risksHtml = (r.risks || []).map(rk =>
@@ -1167,6 +1310,21 @@ function renderReport(visionJson, r, imageDataUrl, strategyJson, hitSet) {
         <div class="signal-detail-card">${r.signal_summary}</div>
       </div>
     </div>
+
+    <!-- 核心结论板块 -->
+    ${r.core_conclusion ? `<div class="conclusion-card">
+      <div class="conclusion-header">
+        <span class="section-card-icon">🎯</span>
+        <span class="section-card-title">核心结论</span>
+      </div>
+      <div class="conclusion-judgment">${r.core_conclusion.judgment || ''}</div>
+      <div class="conclusion-findings">
+        ${(r.core_conclusion.key_findings || []).map(f =>
+          `<div class="conclusion-finding"><span class="conclusion-finding-icon">▸</span><span>${f}</span></div>`
+        ).join('')}
+      </div>
+      ${r.core_conclusion.action_hint ? `<div class="conclusion-action"><span>💡</span><span>${r.core_conclusion.action_hint}</span></div>` : ''}
+    </div>` : ''}
 
     <!-- 技术信号明细 -->
     <div class="section-card">
@@ -1206,9 +1364,7 @@ function renderReport(visionJson, r, imageDataUrl, strategyJson, hitSet) {
         <span class="section-card-icon">🔭</span>
         <span class="section-card-title">情景推演与概率分析</span>
       </div>
-      <div class="section-card-body">
-        <div class="scenario-grid">${scenariosHtml}</div>
-      </div>
+      <div class="section-card-body">${scenariosHtml}</div>
     </div>
 
     <!-- 风险反转 -->
@@ -1237,7 +1393,7 @@ async function fetchPythonAnalysis(dataUrl) {
     const res = await fetch('http://localhost:5000/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image: dataUrl })
+      body: JSON.stringify({ image: dataUrl, debug: false })
     });
     if (!res.ok) return null;
     return await res.json();
@@ -1360,6 +1516,50 @@ function analyzeKlineColors(canvas, w, h) {
     summary
   };
 }
+// --- PDF 导出 ---
+async function exportPDF() {
+  const btn = document.getElementById('exportPdfBtn');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ 正在生成 PDF...';
+
+  try {
+    const reportEl = document.getElementById('reportPanel');
+
+    // 临时调整样式以适应PDF
+    const main = document.querySelector('.main');
+    const origOverflow = main.style.overflow;
+    main.style.overflow = 'visible';
+    reportEl.style.width = '860px';
+
+    const opt = {
+      margin: [10, 10, 10, 10],
+      filename: `K线归因研报_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.pdf`,
+      image: { type: 'jpeg', quality: 0.95 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#0d0f14',
+        scrollY: 0,
+        windowWidth: 900
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+    };
+
+    await html2pdf().set(opt).from(reportEl).save();
+
+    // 恢复样式
+    main.style.overflow = origOverflow;
+    reportEl.style.width = '';
+  } catch (e) {
+    console.error('PDF导出失败:', e);
+    alert('PDF导出失败: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '📄 导出 PDF';
+  }
+}
+
 function resetApp() {
   document.getElementById('reportPanel').style.display = 'none';
   document.getElementById('progressPanel').style.display = 'none';
