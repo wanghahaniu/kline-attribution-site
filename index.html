@@ -216,9 +216,34 @@ body {
 .source-chip:hover { border-color: var(--blue); background: var(--blue-dim); }
 
 /* PDF 导出专用：防止卡片在分页时被拦腰斩断 */
-.html2pdf__page-break {
-  page-break-inside: avoid;
-  break-inside: avoid;
+@media print {
+  /* 强制打印背景色 */
+  body, .app, .main, .content {
+    background: #0d0f14 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* 隐藏不需要打印的侧边栏和输入区 */
+  .sidebar, #inputPanel, .action-bar, .strategy-panel, .progress-panel, button {
+    display: none !important;
+  }
+
+  /* 打印区填满页面 */
+  .main { flex: none; display: block; overflow: visible; }
+  .content { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
+  #reportPanel { display: block !important; margin-top: 0 !important; }
+
+  /* 防止卡片断层 */
+  .section-card, .conclusion-card, .driver-item, .report-hero {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* 强制调整边框和字体的显示 */
+  .driver-item.primary {
+    border: 1px solid rgba(74,158,255,0.4) !important;
+  }
 }
 .source-chip {
   display: inline-flex; align-items: center; gap: 4px;
@@ -433,7 +458,6 @@ body {
 .btn-export:hover { opacity: 0.9; }
 .btn-export:disabled { opacity: 0.5; cursor: not-allowed; }
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 
@@ -544,7 +568,7 @@ body {
         </div>
         <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; gap: 10px;">
           <button class="btn-primary" style="background:var(--bg-card);border:1px solid var(--border);color:var(--text-primary)" onclick="resetApp()">🔄 重新分析</button>
-          <button class="btn-export" id="exportPdfBtn" onclick="exportPDF()">📄 导出 PDF</button>
+          <button class="btn-export" id="exportPdfBtn" onclick="window.print()">📄 导出 PDF</button>
         </div>
       </div>
     </div>
@@ -1522,64 +1546,7 @@ function analyzeKlineColors(canvas, w, h) {
     summary
   };
 }
-// --- PDF 导出 ---
-async function exportPDF() {
-  const btn = document.getElementById('exportPdfBtn');
-  btn.disabled = true;
-  btn.innerHTML = '⏳ 正在生成 PDF...';
-
-  try {
-    const reportEl = document.getElementById('reportPanel');
-
-    // 1. 临时隐藏底部的按钮行和透视面板
-    const btnRow = reportEl.querySelector('div[style*="border-top"]');
-    const strategyPanel = document.getElementById('reportStrategyPanel');
-    if (btnRow) btnRow.style.display = 'none';
-    if (strategyPanel) strategyPanel.style.display = 'none';
-
-    // 2. 给每个卡片加 pagebreak class，防止分页时被从中间切断
-    const cards = reportEl.querySelectorAll('.section-card, .conclusion-card, .driver-item, .report-hero');
-    cards.forEach(c => c.classList.add('html2pdf__page-break'));
-
-    // 3. 临时调整排版以适应 A4 尺寸
-    const origWidth = reportEl.style.width;
-    const origPadding = reportEl.style.padding;
-    reportEl.style.width = '820px'; // 适配 A4 比例
-    reportEl.style.padding = '20px'; // 加上内边距
-
-    const opt = {
-      margin: [15, 10, 15, 10], // 上右下左边距 (mm)
-      filename: `K线归因研报_${new Date().toLocaleDateString('zh-CN').replace(/\//g, '-')}.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: {
-        scale: 2,  // 提高清晰度
-        useCORS: true,
-        backgroundColor: '#0d0f14', // 强制黑底，与网页主题一致
-        windowWidth: 860,
-        scrollY: 0
-      },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak: { mode: ['css', 'legacy'] } // 启用 css 防分页切断
-    };
-
-    await html2pdf().set(opt).from(reportEl).save();
-
-    // 4. 恢复所有样式和隐藏的元素
-    reportEl.style.width = origWidth;
-    reportEl.style.padding = origPadding;
-    cards.forEach(c => c.classList.remove('html2pdf__page-break'));
-    if (btnRow) btnRow.style.display = 'flex';
-    if (strategyPanel) strategyPanel.style.display = 'block';
-
-  } catch (e) {
-    console.error('PDF导出失败:', e);
-    alert('PDF导出失败: ' + e.message);
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '📄 导出 PDF';
-  }
-}
-
+// --- 页面重置 ---
 function resetApp() {
   document.getElementById('reportPanel').style.display = 'none';
   document.getElementById('progressPanel').style.display = 'none';
